@@ -21,7 +21,7 @@ int main(int argc, char **argv){
     parse_program_options(argc, argv, &opts);
     print_program_options(&opts);
     create_file_if_not_exist(&opts);
-    run_sequential_experiment(&opts);
+    run_experiment(&opts);
     return 0;
 }
 

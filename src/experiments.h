@@ -2,6 +2,6 @@
 #define __EXPERIMENTS_H__
 
 
-float run_sequential_experiment(ProgramOptions *opts);
+float run_experiment(ProgramOptions *opts);
 
 #endif

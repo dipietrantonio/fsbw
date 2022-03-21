@@ -12,7 +12,7 @@
 #define WRITE 0
 
 
-static inline float timed_linux_read_write(int block_index, ProgramOptions *opts, short is_read){
+float timed_linux_read_write(int block_index, ProgramOptions *opts, short is_read){
     struct timespec begin, end;
     int fd = open(opts->filename, O_RDWR | O_FSYNC); // | __O_DIRECT);
     if(fd == -1){
@@ -51,7 +51,7 @@ static inline float timed_linux_read_write(int block_index, ProgramOptions *opts
 
 
 
-static inline float timed_posix_read_write(int block_index, ProgramOptions *opts, short is_read){
+float timed_posix_read_write(int block_index, ProgramOptions *opts, short is_read){
     struct timespec begin, end;
     FILE *fp;
     if(is_read)
@@ -93,7 +93,7 @@ static inline float timed_posix_read_write(int block_index, ProgramOptions *opts
 
 
 
-float run_sequential_experiment(ProgramOptions *opts){
+float run_experiment(ProgramOptions *opts){
     float (*io_func) (int, ProgramOptions*, short);
     if(opts->no_caching)
         io_func = timed_linux_read_write;
@@ -131,8 +131,8 @@ float run_sequential_experiment(ProgramOptions *opts){
     float block_size_in_mb = opts->block_size / (1024.0f * 1024);
     float avg_read_bandwidth = block_size_in_mb / mean(read_times, num_reads);
     float avg_write_bandwidth = block_size_in_mb / mean(write_times, num_writes);
-    printf("Average read bandwidth: %.3f MB/s.\n", avg_read_bandwidth);
-    printf("Average write bandwidth: %.3f MB/s.\n", avg_write_bandwidth);
+    printf("Average read bandwidth: %.3f MB/s (N. read ops: %.2f\%).\n", avg_read_bandwidth, (float) num_reads / (num_reads + num_writes) * 100);
+    printf("Average write bandwidth: %.3f MB/s (N. write ops: %.2f\%).\n", avg_write_bandwidth, (float) num_writes / (num_reads + num_writes) * 100);
     free(read_times);
     free(write_times);
 }
