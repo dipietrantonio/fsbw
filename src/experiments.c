@@ -1,13 +1,57 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "common.h"
 #include "program_options.h"
 #include "stats.h"
 
 
+#define READ 1
+#define WRITE 0
 
-static inline float timed_read_write(int block_index, ProgramOptions *opts, short is_read){
+
+static inline float timed_linux_read_write(int block_index, ProgramOptions *opts, short is_read){
+    struct timespec begin, end;
+    int fd = open(opts->filename, O_RDWR | O_FSYNC); // | __O_DIRECT);
+    if(fd == -1){
+        fprintf(stderr, "timed_linux_read_write: error while opening the file.\n");
+        exit(IO_ERROR);
+    }
+    if(lseek(fd, opts->block_size * block_index, SEEK_SET) == -1){
+        fprintf(stderr, "timed_linux_read_write: error while moving within the file.\n");
+        close(fd);
+        exit(IO_ERROR);
+    }
+    char *buffer = malloc(sizeof(char) * opts->block_size);
+    if(!buffer){
+        fprintf(stderr, "Error while allocating memory.\n");
+        close(fd);
+        exit(MEMORY_ERROR);
+    }
+    ssize_t ret_val;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
+    if(is_read)
+        ret_val = read(fd, buffer, sizeof(char) * opts->block_size);
+    else
+        ret_val = write(fd, buffer, sizeof(char) * opts->block_size);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+    if(ret_val < 0){
+        fprintf(stderr, "timed_linux_read_write: error while writing/reading portion of the file.\n");
+        exit(IO_ERROR);
+    }
+    free(buffer);
+    close(fd);
+    // compute elapsed time in seconds
+    float elapsed_time = (end.tv_nsec - begin.tv_nsec) / 1000000000.0 + (end.tv_sec  - begin.tv_sec);
+    return elapsed_time;
+}
+
+
+
+
+static inline float timed_posix_read_write(int block_index, ProgramOptions *opts, short is_read){
     struct timespec begin, end;
     FILE *fp;
     if(is_read)
@@ -50,6 +94,12 @@ static inline float timed_read_write(int block_index, ProgramOptions *opts, shor
 
 
 float run_sequential_experiment(ProgramOptions *opts){
+    float (*io_func) (int, ProgramOptions*, short);
+    if(opts->no_caching)
+        io_func = timed_linux_read_write;
+    else
+        io_func = timed_posix_read_write;
+    // arrays where to save timings
     float *read_times = (float*) malloc(sizeof(float) * opts->block_count);
     float *write_times = (float*) malloc(sizeof(float) * opts->block_count);
     int num_writes = 0, num_reads = 0;
@@ -70,10 +120,10 @@ float run_sequential_experiment(ProgramOptions *opts){
         // TODO: set seed
         if(((float)rand())/RAND_MAX <= opts->read_prob){
             // it is a read op
-            read_times[num_reads++] = timed_read_write(current_block, opts, 1);
+            read_times[num_reads++] = io_func(current_block, opts, READ);
         }else{
             // it is a write op
-            write_times[num_writes++]= timed_read_write(current_block, opts, 0);
+            write_times[num_writes++]= io_func(current_block, opts, WRITE);
         }
     }
 
