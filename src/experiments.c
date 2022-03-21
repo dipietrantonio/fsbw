@@ -130,11 +130,24 @@ float run_experiment(ProgramOptions *opts){
     }
 
     // stats
-    float avg_read_bandwidth = mean(read_bw, num_reads), rd_std = stddev(read_bw, num_reads);
-    float avg_write_bandwidth = mean(write_bw, num_writes), wr_std = stddev(write_bw, num_writes);
+    if(num_reads){
+        float avg_read_bandwidth = mean(read_bw, num_reads);
+        float rd_std = stddev(read_bw, num_reads);
+        float min_read_bw = min(read_bw, num_reads);
+        float max_read_bw = max(read_bw, num_reads);
+        printf("Read bandwidth - min: %.3f MB/s, max: %.3fMB/s, mean: %.3f MB/s, stddev: %.3f. (N. read ops: %.2f\%).\n", \
+        min_read_bw, max_read_bw, avg_read_bandwidth, rd_std, (float) num_reads / (num_reads + num_writes) * 100);
+    }
 
-    printf("Average read bandwidth: %.3f MB/s. Standard deviation: %.3f. (N. read ops: %.2f\%).\n", avg_read_bandwidth, rd_std, (float) num_reads / (num_reads + num_writes) * 100);
-    printf("Average write bandwidth: %.3f MB/s. Standard deviation: %.3f. (N. write ops: %.2f\%).\n", avg_write_bandwidth, wr_std, (float) num_writes / (num_reads + num_writes) * 100);
+    if(num_writes){
+        float avg_write_bandwidth = mean(write_bw, num_writes);
+        float wr_std = stddev(write_bw, num_writes);
+        float min_write_bw = min(write_bw, num_reads);
+        float max_write_bw = max(write_bw, num_reads);
+
+        printf("Write bandwidth - min: %.3f MB/s, max: %.3fMB/s, mean: %.3f MB/s, stddev: %.3f. (N. write ops: %.2f\%).\n", \
+            min_write_bw, max_write_bw, avg_write_bandwidth, wr_std, (float) num_writes / (num_reads + num_writes) * 100);
+    }
     free(read_bw);
     free(write_bw);
 }
