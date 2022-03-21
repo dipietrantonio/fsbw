@@ -6,6 +6,7 @@
 #include "stats.h"
 
 
+
 static inline float timed_read_write(int block_index, ProgramOptions *opts, short is_read){
     struct timespec begin, end;
     FILE *fp;
@@ -82,6 +83,8 @@ float run_sequential_experiment(ProgramOptions *opts){
     float avg_write_bandwidth = block_size_in_mb / mean(write_times, num_writes);
     printf("Average read bandwidth: %.3f MB/s.\n", avg_read_bandwidth);
     printf("Average write bandwidth: %.3f MB/s.\n", avg_write_bandwidth);
+    free(read_times);
+    free(write_times);
 }
 
 
