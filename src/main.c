@@ -1,7 +1,9 @@
 // Access File program
 // Author: Cristian Di Pietrantonio (cdipietrantonio@pawsey.org.au)
+#include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
-#include <ctype.h>
+#include <unistd.h>
 #include "common.h"
 #include "program_options.h"
 #include "experiments.h"
@@ -11,8 +13,13 @@ void create_file_if_not_exist(ProgramOptions *opts);
 
 
 int main(int argc, char **argv){
+    if(argc < 2){
+        print_program_help();
+        exit(0);
+    }
     ProgramOptions opts;
     parse_program_options(argc, argv, &opts);
+    print_program_options(&opts);
     create_file_if_not_exist(&opts);
     run_sequential_experiment(&opts);
     return 0;

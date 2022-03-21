@@ -1,8 +1,8 @@
 #include <time.h>
-
+#include <stdio.h>
+#include <stdlib.h>
 #include "common.h"
 #include "program_options.h"
-#include "experiments.h"
 #include "stats.h"
 
 
@@ -17,8 +17,7 @@ static inline float timed_read_write(int block_index, ProgramOptions *opts, shor
         fprintf(stderr, "Error while opening the file.\n");
         exit(IO_ERROR);
     }
-    int wrapped_block_index = block_index % (opts->file_size / opts->block_size);
-    if(fseek(fp, opts->block_size * wrapped_block_index, SEEK_SET) != 0){
+    if(fseek(fp, opts->block_size * block_index, SEEK_SET) != 0){
         fprintf(stderr, "Error while moving within the file.\n");
         fclose(fp);
         exit(IO_ERROR);
@@ -57,8 +56,15 @@ float run_sequential_experiment(ProgramOptions *opts){
         fprintf(stderr, "Error while allocating memory.\n");
         exit(MEMORY_ERROR);
     }
+    int current_block;
+    const int blocks_in_file = opts->file_size / opts->block_size;
     // TODO: possible parallelisation here
-    for(int current_block = 0; current_block < opts->block_count; current_block++){
+    for(int count = 0; count < opts->block_count; count++){
+        if(opts->random_access){
+            current_block = rand() % blocks_in_file;
+        }else{
+            current_block = count % blocks_in_file;
+        }
         // choose op: read or write?
         // TODO: set seed
         if(((float)rand())/RAND_MAX <= opts->read_prob){

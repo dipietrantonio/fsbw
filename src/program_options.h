@@ -14,7 +14,13 @@ typedef struct {
     long long file_size;
     // probabilities that the next op is read, respectively.
     float read_prob;
+    // ignore cache
+    int no_caching;
+    // access file randomly
+    int random_access;
 } ProgramOptions;
 
+void print_program_help(void);
+void print_program_options(ProgramOptions* opts);
 void parse_program_options(int argc, char **argv, ProgramOptions* opts);
 #endif
