@@ -63,8 +63,8 @@ static inline float timed_read_write(int block_index, ProgramOptions *opts, shor
         fprintf(stderr, "Error while opening the file.\n");
         exit(IO_ERROR);
     }
-    // TODO wrap around the file
-    if(fseek(fp, opts->block_size * block_index, SEEK_SET) != 0){
+    int wrapped_block_index = block_index % (opts->file_size / opts->block_size);
+    if(fseek(fp, opts->block_size * wrapped_block_index, SEEK_SET) != 0){
         fprintf(stderr, "Error while moving within the file.\n");
         fclose(fp);
         exit(IO_ERROR);
@@ -160,6 +160,9 @@ long long parse_bytespec(const char * const spec){
                 result *= 1024 * 1024 * 1024;
                 break;
             }
+            default : {
+                return -1;
+            }
         }
     }
     return result;
@@ -216,7 +219,7 @@ void parse_program_options(int argc, char **argv, ProgramOptions* opts){
     opts->block_size = parse_bytespec("4K");
     opts->file_size = parse_bytespec("512M");
     opts->read_prob = 0.5;
-    opts->block_count = (int) (opts->file_size / opts->block_size);
+    opts->block_count = 0;
 
     while((current_opt = getopt(argc, argv, options)) != - 1){
         switch(current_opt){
@@ -266,7 +269,9 @@ void parse_program_options(int argc, char **argv, ProgramOptions* opts){
     if(opts->filename == NULL){
         fprintf(stderr, "No filename specified.\n");
         exit(OPTION_PARSING_ERROR);
-    } 
+    }
+    if(opts->block_count == 0)
+        opts->block_count = opts->file_size / opts->block_size;
 }
 
 
