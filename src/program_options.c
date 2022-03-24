@@ -53,7 +53,7 @@ long long parse_bytespec(const char * const spec){
 void print_program_options(ProgramOptions* opts){
     printf("Program options:\n----------------\n\t");
     printf("Filename: %s\n\t", opts->filename);
-    printf("File size: %ld bytes (%.2f MB)\n\t",  opts->file_size, opts->file_size / (1024.0f * 1024));
+    printf("File size: %lld bytes (%.2f MB)\n\t",  opts->file_size, opts->file_size / (1024.0f * 1024));
     printf("Block size: %d bytes (%.4f MB)\n\t", opts->block_size, opts->block_size / (1024.0f * 1024));
     printf("Block count: %d\n\t", opts->block_count);
     printf("Read probability: %0.2f\n\t", opts->read_prob);
@@ -71,12 +71,13 @@ void print_program_help(void){
     printf("\t-p <read probability>: number in the [0, 1] interval indicating the probability the next operation to perform is a read operation.\n");
     printf("\t-r: enable random access to the file (default: file read/written sequentially).\n");
     printf("\t-n: avoid caching at all costs.\n");
+    printf("\t-j: produce output in json format.\n");
 }
 
 
 
 void parse_program_options(int argc, char **argv, ProgramOptions* opts){
-    const char *options = "S:B:c:p:f:nr";
+    const char *options = "S:B:c:p:f:nrj";
     // TODO: add random option.
     int current_opt;
     // Set default options
@@ -87,6 +88,7 @@ void parse_program_options(int argc, char **argv, ProgramOptions* opts){
     opts->block_count = 0;
     opts->no_caching = 0;
     opts->random_access = 0;
+    opts->json_output = 0;
 
     while((current_opt = getopt(argc, argv, options)) != - 1){
         switch(current_opt){
@@ -132,6 +134,10 @@ void parse_program_options(int argc, char **argv, ProgramOptions* opts){
             }
             case 'r':{
                 opts->random_access = 1;
+                break;
+            }
+            case 'j':{
+                opts->json_output = 1;
                 break;
             }
             default : {

@@ -18,6 +18,8 @@ typedef struct {
     int no_caching;
     // access file randomly
     int random_access;
+    // produce output in json format
+    int json_output;
 } ProgramOptions;
 
 void print_program_help(void);
