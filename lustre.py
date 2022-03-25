@@ -1,5 +1,7 @@
+from importlib.metadata import files
 import subprocess
 import multiprocessing
+import json
 from itertools import product
 from statistics import mean, stdev
 import os
@@ -24,6 +26,20 @@ def exec_dd(infile, outfile, bs, count, skip):
     }
     number = float(number) * unit_dict[unit]
     return number
+
+
+
+def exec_fsbw(filename, file_size = '512M', block_size = '16M', random = False, block_count = None, read_prob = 0.5):
+    args = ["fsbw", f"-f{filename}", f"-S{file_size}", f"-B{block_size}", f"-p{read_prob}", "-j"]
+    if random:
+        args.append("-r")
+    if block_count is not None:
+        args.append(f"-c{block_count}")
+        
+    result = subprocess.run(args, stdout=subprocess.PIPE)
+    text_output = result.stdout.decode("utf-8")
+    json_output = json.loads(text_output)
+    return json_output
 
 
 
