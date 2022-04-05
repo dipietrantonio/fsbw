@@ -1,9 +1,8 @@
-from importlib.metadata import files
+import pickle
 import subprocess
 import multiprocessing
 import json
 from itertools import product
-from statistics import mean, stdev
 import os
 
 
@@ -30,7 +29,7 @@ def exec_dd(infile, outfile, bs, count, skip):
 
 
 def exec_fsbw(filename, file_size = '512M', block_size = '16M', random = False, block_count = None, read_prob = 0.5):
-    args = ["fsbw", f"-f{filename}", f"-S{file_size}", f"-B{block_size}", f"-p{read_prob}", "-j"]
+    args = ["fsbw", f"-f{filename}", f"-S{file_size}", f"-B{block_size}", f"-p{read_prob}", "-j", "-m"]
     if random:
         args.append("-r")
     if block_count is not None:
@@ -43,7 +42,25 @@ def exec_fsbw(filename, file_size = '512M', block_size = '16M', random = False, 
 
 
 
-def run_multiple_dd_in_parallel(argument_sets):
+def exec_parallel_fsbw(ntasks, filename, file_size = '512M', block_size = '16M', random = False, block_count = None, read_prob = 0.5):
+    args = f'sbatch --wait -N {ntasks} --tasks-per-node=1 -p standard --account project_462000053 --mem=40G --time=00:30:00 --wrap'.split()
+    fsbw_str = f"srun fsbw -f{filename} -S{file_size} -B{block_size} -p{read_prob} -j -m"
+    if random:
+        fsbw_str += " -r"
+    if block_count is not None:
+        fsbw_str += f" -c{block_count}"
+    
+    args.append(fsbw_str)
+    result = subprocess.run(args, stdout=subprocess.PIPE)
+    print(result.stdout)
+    text_output = result.stdout.decode("utf-8").splitlines()
+    json_output = []
+    for line in text_output[1:]:
+        json_output.append(json.loads(line))
+    return json_output
+
+
+def run_experiments_in_parallel(argument_sets):
     """
     Runs multiple dd commands in parallel, one for each argument set.
 
@@ -88,23 +105,32 @@ class LustreSetStripe:
                 self.setstripe(path)
 
 
+def parse_size(spec):
+    unit = spec[-1]
+    if unit.isdigit():
+        return int(spec)
+    else:
+        base = int(spec[:-1])
+        if unit == 'K': return base * 1024
+        elif unit == 'M': return base * 1024**2
+        elif unit == 'G': return base * 1024**3
+        else: raise ValueError()
 
 
-def process_bandwidths(bws):
-    return mean(bws), stdev(bws)
+def _objective_help(avg_bw, stddev_bw):
+    return avg_bw / stddev_bw
 
 
 
-def add_output_file(argument_sets):
-    """
-    Adds the output file argument to each argument list. It is done in this way to be able to
-    specify a different output file for each other parameters combination.
-    """
-    new_exps = []
-    for i, (inp, bs, counts, skip) in enumerate(argument_sets):
-        new_exps.append((inp, f"test_out_{i}", bs, counts, skip))
-    return new_exps
-        
+def objective(result):
+    obj = 0
+    if 'writes' in result:
+        obj += _objective_help(result['writes']['mean'], result['writes']['stddev'])
+    if 'reads' in result:
+        obj += _objective_help(result['reads']['mean'], result['reads']['stddev'])
+    return obj / 2
+
+
 
 
 if __name__ == "__main__":
@@ -112,47 +138,43 @@ if __name__ == "__main__":
     # STEP 1: define Progressive File Layouts to test
     # =====================================================================================
     lyts = [
-        [('-1', '-1', '4M')],
-        [('256M', '1', '4M'), ('4G', '4', '4M'), ('-1', '-1', '32M')],
-        [('32M', '1', '4M'), ('256G', '8', '4M'), ('-1', '-1', '32M')],
-
+        [],
+        (('-1', '-1', '4M'),),
+        (('256M', '1', '4M'), ('4G', '4', '4M'), ('-1', '-1', '4M')),
+        (('32M', '1', '4M'), ('256G', '8', '4M'), ('-1', '-1', '4M')),
+        (('32M', '1', '4M'), ('4G', '8', '4M'), ('-1', '-1', '4M')),
+        (('32M', '1', '4M'), ('4G', '8', '4M'), ('-1', '-1', '1M')),
+        (('1M', '1', '1M'), ('64M', '4', '1M'), ('-1', '-1', '1M'))
     ]
     # =====================================================================================
     # STEP 2: define a set of I/O ops to perform
     # =====================================================================================
     
     # experiment set 1 - bandwidth as a function of file size.
-    inputs = ['/dev/zero']
-    bs = ['4M']
-    counts = list(range(1, 1024, 20))
-    skip = [0]
-    # experiment set 2 - bandwidth as a function of read/write size.
-    inputs = ['/dev/zero']
-    bs = ['4K', '4M', '32M', '256M']
-    counts = ['20']
-
-    # experiment set 3 - bandwidth as a function of file concurrency
-    inputs = ['1_gb_file']
-    bs = ['32M']
-    counts = [1]
-    skip = list(f"{x}M" for x in range(0, 1024, 64))
-
-    # continue here
-
+    inputs = ['test_1.bin',] #'test_2.bin', 'test_3.bin',] #'test_4.bin']
+    file_size = ['20G'] # ['512M', '4G', '20G', '200G']
+    file_to_filesize = dict(zip(inputs, file_size))
+    block_size = ['4M'] #['10K', '1M', '4M', '16M']
+    block_count = [5000]
+    read_prob = [1]
+    experiments = list(product(inputs, block_size, block_count, read_prob))
+    # Run the set od experiments for each progressive file layout
+    all_results = []
     lss = LustreSetStripe()
-    for l, lyt in enumerate(lyts):
-        print("======== Testing PFL", lyt)
-        lss.update_pfl(lyt)
-            
-        # cleanup previous output filesp
-        experiments = add_output_file(product(inputs, bs, counts, skip))
-        for _, out, _, _ , _ in experiments:
-            if os.path.isfile(out): os.unlink(out)
-            lss(out)
-            
-        bandwidths = run_multiple_dd_in_parallel(experiments)
-
-        with open(f"results_{l}.txt", "w") as fp:
-            for exp, bw in zip(experiments, bandwidths):
-                fp.write(f"Experiment: {exp} -> bw {bw}\n")
-        print("Mean and Stdev of bandwidth: {}, {}".format(*process_bandwidths(bandwidths)))
+    for exp in experiments:
+        for l, lyt in enumerate(lyts):
+            print("======== Testing PFL", lyt)
+            if len(lyt) > 0:
+                lss.update_pfl(lyt)
+            for nnodes in [1, 2, 4, 8, 16]:
+                # cleanup previous output file if exists, and set the PFL to the new one
+                filename = exp[0]
+                if os.path.isfile(filename): os.unlink(filename)
+                if len(lyt) > 0: lss(filename)
+                # create the file with a specific length
+                with open(filename, "w") as fp:
+                    fp.truncate(parse_size(file_to_filesize[filename]))
+                res = exec_parallel_fsbw(nnodes, filename=exp[0], block_size=exp[1], block_count=exp[2], read_prob=exp[3])
+                all_results.append((exp, lyt, nnodes, res))
+    with open("results_multiple_nodes.bin", "wb") as fp:
+        pickle.dump(all_results, fp)

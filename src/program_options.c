@@ -72,12 +72,13 @@ void print_program_help(void){
     printf("\t-r: enable random access to the file (default: file read/written sequentially).\n");
     printf("\t-n: avoid caching at all costs.\n");
     printf("\t-j: produce output in json format.\n");
+    printf("\t-m: interpret the value passed with -B as maximum number of blocks.\n");
 }
 
 
 
 void parse_program_options(int argc, char **argv, ProgramOptions* opts){
-    const char *options = "S:B:c:p:f:nrj";
+    const char *options = "S:B:c:p:f:nrjm";
     // TODO: add random option.
     int current_opt;
     // Set default options
@@ -89,6 +90,7 @@ void parse_program_options(int argc, char **argv, ProgramOptions* opts){
     opts->no_caching = 0;
     opts->random_access = 0;
     opts->json_output = 0;
+    opts->interpret_as_max = 0;
 
     while((current_opt = getopt(argc, argv, options)) != - 1){
         switch(current_opt){
@@ -140,6 +142,10 @@ void parse_program_options(int argc, char **argv, ProgramOptions* opts){
                 opts->json_output = 1;
                 break;
             }
+            case 'm':{
+                opts->interpret_as_max = 1;
+                break;
+            }
             default : {
                 fprintf(stderr, "Unrecognised option: '%c'\n", optopt);
                 exit(GENERIC_ERROR);
@@ -153,4 +159,9 @@ void parse_program_options(int argc, char **argv, ProgramOptions* opts){
     }
     if(opts->block_count == 0)
         opts->block_count = opts->file_size / opts->block_size;
+    
+    if(opts->interpret_as_max){
+        unsigned int blocks_in_file = opts->file_size / opts->block_size;
+        if(blocks_in_file < opts->block_count) opts->block_count = blocks_in_file;
+    }
 }

@@ -19,9 +19,9 @@ int main(int argc, char **argv){
     }
     ProgramOptions opts;
     parse_program_options(argc, argv, &opts);
+    create_file_if_not_exist(&opts);
     if(!opts.json_output)
         print_program_options(&opts);
-    create_file_if_not_exist(&opts);
     run_experiment(&opts);
     return 0;
 }

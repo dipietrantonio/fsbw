@@ -20,6 +20,8 @@ typedef struct {
     int random_access;
     // produce output in json format
     int json_output;
+    // program options
+    int interpret_as_max;
 } ProgramOptions;
 
 void print_program_help(void);
