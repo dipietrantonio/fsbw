@@ -14,8 +14,6 @@ typedef struct {
     long long file_size;
     // probabilities that the next op is read, respectively.
     float read_prob;
-    // ignore cache
-    int no_caching;
     // access file randomly
     int random_access;
     // produce output in json format

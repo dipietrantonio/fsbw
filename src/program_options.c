@@ -57,7 +57,6 @@ void print_program_options(ProgramOptions* opts){
     printf("Block size: %d bytes (%.4f MB)\n\t", opts->block_size, opts->block_size / (1024.0f * 1024));
     printf("Block count: %d\n\t", opts->block_count);
     printf("Read probability: %0.2f\n\t", opts->read_prob);
-    printf("Avoid caching: %s\n\t", opts->no_caching ? "yes" : "no");
     printf("Random access: %s\n\n", opts->random_access ? "yes" : "no");
 }
 
@@ -70,7 +69,6 @@ void print_program_help(void){
     printf("\t-S <file size>: if the file does not exist, a file of size S bytes will be created.\n\t\tCan use K/M/G postfixes for Kilo/Mega/Giga multiplier, e.g. 32M.\n");
     printf("\t-p <read probability>: number in the [0, 1] interval indicating the probability the next operation to perform is a read operation.\n");
     printf("\t-r: enable random access to the file (default: file read/written sequentially).\n");
-    printf("\t-n: avoid caching at all costs.\n");
     printf("\t-j: produce output in json format.\n");
     printf("\t-m: interpret the value passed with -B as maximum number of blocks.\n");
 }
@@ -87,7 +85,6 @@ void parse_program_options(int argc, char **argv, ProgramOptions* opts){
     opts->file_size = parse_bytespec("512M");
     opts->read_prob = 0.5;
     opts->block_count = 0;
-    opts->no_caching = 0;
     opts->random_access = 0;
     opts->json_output = 0;
     opts->interpret_as_max = 0;
@@ -128,10 +125,6 @@ void parse_program_options(int argc, char **argv, ProgramOptions* opts){
                     fprintf(stderr, "The probability must be between 0 and 1.\n");
                     exit(GENERIC_ERROR);
                 }
-                break;
-            }
-            case 'n':{
-                opts->no_caching = 1;
                 break;
             }
             case 'r':{
