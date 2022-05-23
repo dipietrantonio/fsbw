@@ -20,6 +20,18 @@ int main(int argc, char **argv){
     ProgramOptions opts;
     parse_program_options(argc, argv, &opts);
     create_file_if_not_exist(&opts);
+    // option validation
+    if(opts.block_size > opts.file_size){
+        fprintf(stderr, "Block size can't be larger than file size.\n");
+        exit(OPTION_PARSING_ERROR);
+    }
+    if(opts.block_count == 0)
+        opts.block_count = opts.file_size / opts.block_size;
+    
+    if(opts.interpret_as_max){
+        unsigned int blocks_in_file = opts.file_size / opts.block_size;
+        if(blocks_in_file < opts.block_count) opts.block_count = blocks_in_file;
+    }
     if(!opts.json_output)
         print_program_options(&opts);
     run_experiment(&opts);
@@ -56,10 +68,6 @@ void create_file_if_not_exist(ProgramOptions *opts){
             exit(GENERIC_ERROR);
         }
         fclose(f);
-    }
-    if(opts->block_size > opts->file_size){
-        fprintf(stderr, "Block size can't be larger than file size.\n");
-        exit(OPTION_PARSING_ERROR);
     }
 }
 

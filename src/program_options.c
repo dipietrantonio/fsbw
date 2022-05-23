@@ -150,11 +150,4 @@ void parse_program_options(int argc, char **argv, ProgramOptions* opts){
         fprintf(stderr, "No filename specified.\n");
         exit(OPTION_PARSING_ERROR);
     }
-    if(opts->block_count == 0)
-        opts->block_count = opts->file_size / opts->block_size;
-    
-    if(opts->interpret_as_max){
-        unsigned int blocks_in_file = opts->file_size / opts->block_size;
-        if(blocks_in_file < opts->block_count) opts->block_count = blocks_in_file;
-    }
 }
