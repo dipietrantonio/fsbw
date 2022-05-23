@@ -55,12 +55,11 @@ void create_file_if_not_exist(ProgramOptions *opts){
             fclose(f);
             exit(GENERIC_ERROR);
         }
-        if(opts->block_size > opts->file_size){
-            fprintf(stderr, "Block size can't be larger than file size.\n");
-            fclose(f);
-            exit(OPTION_PARSING_ERROR);
-        }
         fclose(f);
+    }
+    if(opts->block_size > opts->file_size){
+        fprintf(stderr, "Block size can't be larger than file size.\n");
+        exit(OPTION_PARSING_ERROR);
     }
 }
 

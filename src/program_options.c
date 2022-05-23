@@ -70,7 +70,7 @@ void print_program_help(void){
     printf("\t-p <read probability>: number in the [0, 1] interval indicating the probability the next operation to perform is a read operation.\n");
     printf("\t-r: enable random access to the file (default: file read/written sequentially).\n");
     printf("\t-j: produce output in json format.\n");
-    printf("\t-m: interpret the value passed with -B as maximum number of blocks.\n");
+    printf("\t-m: interpret the value passed with -B as maximum number of blocks to be read or written.\n");
 }
 
 
