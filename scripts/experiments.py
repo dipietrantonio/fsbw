@@ -54,7 +54,7 @@ def single_node_experiment():
 
 
 def multi_node_experiment():
-    # TODO implement it
+    # TODO implement this
     all_results = []
     lss = LustreSetStripe()
     for exp in experiments:
