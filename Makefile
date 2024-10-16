@@ -22,6 +22,9 @@ obj/main.o : src/main.c src/common.h src/experiments.h src/program_options.h
 bin/fsbw : obj/main.o obj/stats.o obj/program_options.o obj/experiments.o
 	gcc -o $@ $^ $(LIBS)
 
+install : bin/fsbw 
+	install -d $(PREFIX)/bin/
+	install -m 755 bin/fsbw $(PREFIX)/bin/
 
 clean :
 	rm obj/*
